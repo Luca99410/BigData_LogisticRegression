@@ -1,5 +1,7 @@
 # Logistische Regression in Apache Spark — Single- vs. Multi-Worker Benchmark
 
+Jupyter-Notebook ist unter ./work/LogReg.ipynb zu finden.
+
 Dieses Projekt untersucht die **Performance einer logistischen Regression** (Spark MLlib) in zwei Setups bei **konstantem Gesamtkernbudget**:
 - **1 Worker (w1):** 4 Cores, 8 GB RAM
 - **2 Worker (w2):** je 2 Cores, 4 GB RAM (insgesamt 4 Cores)
