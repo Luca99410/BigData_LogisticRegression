@@ -1,0 +1,108 @@
+# docker/docker-compose.yml
+services:
+  spark-master:
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: my-spark:3.5.0
+    container_name: spark-master
+    hostname: spark-master
+    environment:
+      - SPARK_MODE=master
+      - PYSPARK_PYTHON=python
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    networks: [sparknet]
+    mem_limit: 0.75g
+    cpus: 0.5
+    restart: unless-stopped
+    volumes:
+      - ../work:/home/jovyan/work
+      - ../data:/home/jovyan/work/data
+      - ../results:/home/jovyan/work/results
+
+  # Profil: EIN Worker mit exakt 8g Container-Limit
+  spark-worker-8g:
+    profiles: ["w1"]
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: my-spark:3.5.0
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - PYSPARK_PYTHON=python
+      - SPARK_WORKER_CORES=4
+      - SPARK_WORKER_MEMORY=7680m  
+    depends_on: [spark-master]
+    networks: [sparknet]
+    mem_limit: 8g                   
+    cpus: 4.0
+    restart: unless-stopped
+    volumes:
+      - ../work:/home/jovyan/work
+      - ../data:/home/jovyan/work/data
+      - ../results:/home/jovyan/work/results
+
+  # Profil: ZWEI Worker mit je exakt 4g Container-Limit
+  spark-worker-4g:
+    profiles: ["w2"]
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: my-spark:3.5.0
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - PYSPARK_PYTHON=python
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=3600m     
+    depends_on: [spark-master]
+    networks: [sparknet]
+    mem_limit: 4g                    
+    cpus: 2.0
+    restart: unless-stopped
+    volumes:
+      - ../work:/home/jovyan/work
+      - ../data:/home/jovyan/work/data
+      - ../results:/home/jovyan/work/results
+
+  jupyter:
+    image: jupyter/pyspark-notebook:latest
+    container_name: spark-jupyter
+    hostname: spark-jupyter
+    environment:
+      - PYSPARK_PYTHON=python
+      - SPARK_LOCAL_IP=spark-jupyter
+      - SPARK_DRIVER_HOST=spark-jupyter
+      - SPARK_DRIVER_BIND_ADDRESS=0.0.0.0
+      - JUPYTER_TOKEN=
+      - JUPYTER_PASSWORD=
+    command:
+      - bash
+      - -lc
+      - |
+        pip install -q pyspark==3.5.0 && \
+        start-notebook.sh \
+          --ServerApp.token='' \
+          --ServerApp.password='' \
+          --NotebookApp.token='' \
+          --NotebookApp.password=''
+    ports:
+      - "18888:8888"
+      - "14040-14050:4040-4050"
+    volumes:
+      - ../work:/home/jovyan/work
+      - ../src:/home/jovyan/work/src
+      - ../results:/home/jovyan/work/results
+      - ../data:/home/jovyan/work/data
+    depends_on: [spark-master]
+    networks: [sparknet]
+    mem_limit: 2.5g
+    cpus: 1.5
+    restart: unless-stopped
+
+networks:
+  sparknet:
+    driver: bridge

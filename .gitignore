@@ -1,0 +1,4 @@
+# data-Ordner ignorieren
+data/*
+# aber eine Platzhalterdatei behalten
+!data/.gitkeep
